@@ -87,21 +87,10 @@ bash .acme.sh/acme.sh --issue -d $domain --server zerossl --keylength ec-256 --f
 chmod 745 /usr/local/etc/xray/private.key
 clear
 echo -e "${GB}[ INFO ]${NC} ${YB}Setup Nginx & Xray Conf${NC}"
-cipher="aes-128-gcm"
-cipher2="2022-blake3-aes-128-gcm"
 uuid=$(cat /proc/sys/kernel/random/uuid)
 pwtr=$(openssl rand -hex 4)
-pwss=$(echo $RANDOM | md5sum | head -c 6; echo;)
-userpsk=$(openssl rand -base64 16)
-serverpsk=$(openssl rand -base64 16)
-echo "$serverpsk" > /usr/local/etc/xray/serverpsk
 cat > /usr/local/etc/xray/config.json << END
 {
-  "log": {
-    "access": "/var/log/xray/access.log",
-    "error": "/var/log/xray/error.log",
-    "loglevel": "info"
-  },
   "api": {
     "services": [
       "HandlerService",
@@ -110,46 +99,19 @@ cat > /usr/local/etc/xray/config.json << END
     ],
     "tag": "api"
   },
-  "stats": {},
-  "policy": {
-    "levels": {
-      "0": {
-        "statsUserUplink": true,
-        "statsUserDownlink": true
-      }
-    },
-    "system": {
-      "statsInboundUplink": true,
-      "statsInboundDownlink": true,
-      "statsOutboundUplink": true,
-      "statsOutboundDownlink": true
-    }
-  },
   "dns": {
-     "servers": [
-        "https://1.1.1.1/dns-query"
+    "queryStrategy": "UseIP",
+    "servers": [
+      {
+        "address": "localhost",
+        "domains": [
+          "https://1.1.1.1/dns-query"
         ],
         "queryStrategy": "UseIP"
+      }
+    ],
+    "tag": "dns_inbound"
   },
-  "routing": {
-     "domainStrategy": "IPIfNonMatch",
-     "rules": [
-        {
-           "type": "field",
-           "domain": [
-              "geosite:openai",
-              "geosite:google",
-              "geosite:youtube",
-              "geosite:netflix",
-              "geosite:spotify",
-              "geosite:zoom",
-              "geosite:facebook",
-              "geosite:cloudflare"
-              ],
-              "outboundTag": "WARP"
-        }
-      ]
-   },
   "inbounds": [
     {
       "listen": "127.0.0.1",
@@ -197,6 +159,21 @@ cat > /usr/local/etc/xray/config.json << END
           {
             "path": "/trojan",
             "dest": "@trojan-ws",
+            "xver": 2
+          },
+          {
+            "path": "/vless-hup",
+            "dest": "@vl-hup",
+            "xver": 2
+          },
+          {
+            "path": "/vmess-hup",
+            "dest": "@vm-hup",
+            "xver": 2
+          },
+          {
+            "path": "/trojan-hup",
+            "dest": "@tr-hup",
             "xver": 2
           }
         ]
@@ -273,7 +250,6 @@ cat > /usr/local/etc/xray/config.json << END
             "email":"general@vless-ws",
             "id": "$uuid"
 #vless
-
           }
         ],
         "decryption": "none"
@@ -284,6 +260,36 @@ cat > /usr/local/etc/xray/config.json << END
         "wsSettings": {
           "acceptProxyProtocol": true,
           "path": "/vless"
+        }
+      },
+      "sniffing": {
+        "enabled": true,
+        "destOverride": [
+          "http",
+          "tls"
+        ]
+      }
+    },
+# VLESS HUP
+    {
+      "listen": "@vl-hup",
+      "protocol": "vless",
+      "settings": {
+        "clients": [
+          {
+            "email":"general@vless-ws",
+            "id": "$uuid"
+#vless
+          }
+        ],
+        "decryption": "none"
+      },
+      "streamSettings": {
+        "network": "httpupgrade",
+        "security": "none",
+        "httpupgradeSettings": {
+          "acceptProxyProtocol": true,
+          "path": "/vless-hup"
         }
       },
       "sniffing": {
@@ -324,6 +330,36 @@ cat > /usr/local/etc/xray/config.json << END
         ]
       }
     },
+# VMESS HUP
+    {
+      "listen": "@vm-hup",
+      "protocol": "vmess",
+      "settings": {
+        "clients": [
+          {
+            "email": "general@vmess-ws", 
+            "id": "$uuid",
+            "level": 0
+#vmess
+          }
+        ]
+      },
+      "streamSettings": {
+        "network": "httpupgrade",
+        "security": "none",
+        "httpupgradeSettings": {
+          "acceptProxyProtocol": true,
+          "path": "/vmess-hup"
+        }
+      },
+      "sniffing": {
+        "enabled": true,
+        "destOverride": [
+          "http",
+          "tls"
+        ]
+      }
+    },
 # TROJAN WS
     {
       "listen": "@trojan-ws",
@@ -343,6 +379,35 @@ cat > /usr/local/etc/xray/config.json << END
         "wsSettings": {
           "acceptProxyProtocol": true,
           "path": "/trojan"
+        }
+      },
+      "sniffing": {
+        "enabled": true,
+        "destOverride": [
+          "http",
+          "tls"
+        ]
+      }
+    },
+# TROJAN HUP
+    {
+      "listen": "@tr-hup",
+      "protocol": "trojan",
+      "settings": {
+        "clients": [
+          {
+            "password": "$pwtr",
+            "level": 0
+#trojan
+          }
+        ]
+      },
+      "streamSettings": {
+        "network": "httpupgrade",
+        "security": "none",
+        "httpupgradeSettings": {
+          "acceptProxyProtocol": true,
+          "path": "/trojan-hup"
         }
       },
       "sniffing": {
@@ -424,43 +489,101 @@ cat > /usr/local/etc/xray/config.json << END
       }
     }
   ],
+  "log": {
+    "access": "/var/log/xray/access.log",
+    "dnsLog": false,
+    "error": "/var/log/xray/error.log",
+    "loglevel": "info"
+  },
   "outbounds": [
     {
-       "protocol": "freedom",
-       "settings": {
-          "domainStrategy": "UseIP"
-       },
-       "tag": "direct"
+      "protocol": "freedom",
+      "settings": {
+        "domainStrategy": "UseIP"
+      },
+      "tag": "direct"
     },
     {
       "protocol": "blackhole",
+      "settings": {},
       "tag": "blocked"
     },
     {
-       "protocol": "wireguard",
-       "settings": {
-          "secretKey": "yD2iamc8Px/vzQh5eXSJP1XG2CTJl+nK+Qf5enmfbFA=",
-          "address": [
-             "172.16.0.2/32",
-             "2606:4700:110:86b8:2bfb:c840:6743:98b2/128"
-             ],
-             "peers": [
-                {
-                   "publicKey": "bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo=",
-                   "allowedIPs": [
-                      "0.0.0.0/0",
-                      "::/0"
-                      ],
-                      "endpoint": "162.159.192.11:7281"
-                }
-              ],
-              "reserved":[148, 253, 57],
-              "mtu": 1280,
-              "domainStrategy": "ForceIPv4v6"
-       },
-       "tag": "WARP"
+      "protocol": "wireguard",
+      "settings": {
+        "address": [
+          "172.16.0.2",
+          "2606:4700:110:8e4b:6376:a98f:575e:6ed3"
+        ],
+        "domainStrategy": "ForceIP",
+        "kernelMode": false,
+        "mtu": 1420,
+        "peers": [
+          {
+            "allowedIPs": [
+              "0.0.0.0/0",
+              "::/0"
+            ],
+            "endpoint": "engage.cloudflareclient.com:2408",
+            "keepAlive": 0,
+            "publicKey": "bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo="
+          }
+        ],
+        "secretKey": "yCNvJmoGd7rjh3SeVqEIm0kquVVfvFlZCwAkVOybdm0=",
+        "workers": 0
+      },
+      "tag": "warp"
     }
-  ]
+  ],
+  "policy": {
+    "levels": {
+      "0": {
+        "statsUserDownlink": true,
+        "statsUserUplink": true
+      }
+    },
+    "system": {
+      "statsInboundDownlink": true,
+      "statsInboundUplink": true,
+      "statsOutboundDownlink": true,
+      "statsOutboundUplink": true
+    }
+  },
+  "routing": {
+    "domainStrategy": "IPIfNonMatch",
+    "rules": [
+      {
+        "inboundTag": [
+          "api"
+        ],
+        "outboundTag": "api",
+        "type": "field"
+      },
+      {
+        "ip": [
+          "geoip:private"
+        ],
+        "outboundTag": "blocked",
+        "type": "field"
+      },
+      {
+        "outboundTag": "blocked",
+        "protocol": [
+          "bittorrent"
+        ],
+        "type": "field"
+      },
+      {
+        "domain": [
+          "geosite:google",
+          "geosite:youtube"
+        ],
+        "outboundTag": "warp",
+        "type": "field"
+      }
+    ]
+  },
+  "stats": {}
 }
 END
 cat > /etc/nginx/nginx.conf << END
