@@ -1,4 +1,4 @@
-user=trial-`echo $RANDOM | head -c4`
+user=xray-`cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 7 | head -n 1`
 masaaktif=1
 domain=$(cat /usr/local/etc/xray/domain)
 uuid=$(cat /proc/sys/kernel/random/uuid)
