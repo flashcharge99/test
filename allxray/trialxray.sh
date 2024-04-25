@@ -17,7 +17,6 @@ sed -i '/#trojan$/a\#&@ '"$user $exp"'\
 },{"password": "'""$pwtr""'","email": "'""$user""'"' /usr/local/etc/xray/config.json
 sed -i '/#trojan-tcp$/a\#&@ '"$user $exp"'\
 },{"password": "'""$pwtr""'","email": "'""$user""'"' /usr/local/etc/xray/config.json
-
 ISP=$(cat /usr/local/etc/xray/org)
 CITY=$(cat /usr/local/etc/xray/city)
 vmlink1=`cat<<EOF
@@ -60,7 +59,6 @@ vlesslink3="vless://$uuid@$domain:443?security=tls&encryption=none&headerType=no
 trojanlink1="trojan://$pwtr@$domain:443?path=/trojan&security=tls&host=$domain&type=ws&sni=$domain#$user"
 trojanlink2="trojan://$pwtr@$domain:80?path=/trojan&security=none&host=$domain&type=ws#$user"
 trojanlink3="trojan://$pwtr@$domain:443?security=tls&type=tcp&sni=$domain#$user"
-
 
 cat > /var/www/html/allxray/allxray-$user.txt << END
 ========================================
@@ -143,9 +141,8 @@ echo -e "Link TLS   : $trojanlink1" | tee -a /user/log-allxray-$user.txt
 echo -e "————————————————————————————————————————————————————" | tee -a /user/log-allxray-$user.txt
 echo -e "Link NTLS  : $trojanlink2" | tee -a /user/log-allxray-$user.txt
 echo -e "————————————————————————————————————————————————————" | tee -a /user/log-allxray-$user.txt
-echo -e "Link TCP   : $trojanlink3 | tee -a /user/log-allxray-$user.txt
+echo -e "Link TCP   : $trojanlink3" | tee -a /user/log-allxray-$user.txt
 echo -e "————————————————————————————————————————————————————" | tee -a /user/log-allxray-$user.txt
-echo -e " " | tee -a /user/log-allxray-$user.txt
 echo -e " " | tee -a /user/log-allxray-$user.txt
 echo -e " " | tee -a /user/log-allxray-$user.txt
 read -n 1 -s -r -p "Press any key to back on menu"
