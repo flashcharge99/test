@@ -24,6 +24,7 @@ fi
 echo -e "${GB}[ INFO ]${NC} ${YB}Starting renew cert...${NC} "
 sleep 2
 bash .acme.sh/acme.sh --issue -d $domain --server zerossl --keylength ec-256 --fullchain-file /usr/local/etc/xray/fullchain.crt --key-file /usr/local/etc/xray/private.key --standalone --force
+chmod 745 /usr/local/etc/xray/private.key
 echo -e "${GB}[ INFO ]${NC} ${YB}Renew cert done...${NC} "
 sleep 2
 echo -e "${GB}[ INFO ]${NC} ${YB}Starting service $Cek${NC} "
