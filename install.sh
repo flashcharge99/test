@@ -91,6 +91,11 @@ uuid=$(cat /proc/sys/kernel/random/uuid)
 pwtr=$(openssl rand -hex 4)
 cat > /usr/local/etc/xray/config.json << END
 {
+  "log": {
+    "access": "/var/log/xray/access.log",
+    "error": "/var/log/xray/error.log",
+    "loglevel": "info"
+  },
   "api": {
     "services": [
       "HandlerService",
@@ -99,19 +104,63 @@ cat > /usr/local/etc/xray/config.json << END
     ],
     "tag": "api"
   },
+  "stats": {},
+  "policy": {
+    "levels": {
+      "0": {
+        "statsUserUplink": true,
+        "statsUserDownlink": true
+      }
+    },
+    "system": {
+      "statsInboundUplink": true,
+      "statsInboundDownlink": true,
+      "statsOutboundUplink": true,
+      "statsOutboundDownlink": true
+    }
+  },
   "dns": {
-    "queryStrategy": "UseIP",
-    "servers": [
-      {
-        "address": "localhost",
-        "domains": [
-          "https://1.1.1.1/dns-query"
+     "servers": [
+        "https://1.1.1.1/dns-query"
         ],
         "queryStrategy": "UseIP"
-      }
-    ],
-    "tag": "dns_inbound"
   },
+  "routing": {
+     "domainStrategy": "IPIfNonMatch",
+     "rules": [
+      {
+        "inboundTag": [
+          "api"
+        ],
+        "outboundTag": "api",
+        "type": "field"
+      },
+      {
+        "ip": [
+          "geoip:private"
+        ],
+        "outboundTag": "blocked",
+        "type": "field"
+      },
+      {
+        "outboundTag": "blocked",
+        "protocol": [
+          "bittorrent"
+        ],
+        "type": "field"
+      },
+      {
+        "type": "field",
+        "domain": [
+          "geosite:openai",
+          "geosite:google",
+          "geosite:youtube",
+          "geosite:netflix"
+          ],
+          "outboundTag": "WARP"
+        }
+      ]
+   },
   "inbounds": [
     {
       "listen": "127.0.0.1",
@@ -489,101 +538,43 @@ cat > /usr/local/etc/xray/config.json << END
       }
     }
   ],
-  "log": {
-    "access": "/var/log/xray/access.log",
-    "dnsLog": false,
-    "error": "/var/log/xray/error.log",
-    "loglevel": "info"
-  },
   "outbounds": [
     {
-      "protocol": "freedom",
-      "settings": {
-        "domainStrategy": "UseIP"
-      },
-      "tag": "direct"
+       "protocol": "freedom",
+       "settings": {
+          "domainStrategy": "UseIP"
+       },
+       "tag": "direct"
     },
     {
       "protocol": "blackhole",
-      "settings": {},
       "tag": "blocked"
     },
     {
-      "protocol": "wireguard",
-      "settings": {
-        "address": [
-          "172.16.0.2",
-          "2606:4700:110:8e4b:6376:a98f:575e:6ed3"
-        ],
-        "domainStrategy": "ForceIP",
-        "kernelMode": false,
-        "mtu": 1420,
-        "peers": [
-          {
-            "allowedIPs": [
-              "0.0.0.0/0",
-              "::/0"
-            ],
-            "endpoint": "engage.cloudflareclient.com:2408",
-            "keepAlive": 0,
-            "publicKey": "bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo="
-          }
-        ],
-        "secretKey": "yCNvJmoGd7rjh3SeVqEIm0kquVVfvFlZCwAkVOybdm0=",
-        "workers": 0
-      },
-      "tag": "warp"
+       "protocol": "wireguard",
+       "settings": {
+          "secretKey": "yD2iamc8Px/vzQh5eXSJP1XG2CTJl+nK+Qf5enmfbFA=",
+          "address": [
+             "172.16.0.2/32",
+             "2606:4700:110:86b8:2bfb:c840:6743:98b2/128"
+             ],
+             "peers": [
+                {
+                   "publicKey": "bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo=",
+                   "allowedIPs": [
+                      "0.0.0.0/0",
+                      "::/0"
+                      ],
+                      "endpoint": "162.159.192.11:7281"
+                }
+              ],
+              "reserved":[148, 253, 57],
+              "mtu": 1280,
+              "domainStrategy": "ForceIPv4v6"
+       },
+       "tag": "WARP"
     }
-  ],
-  "policy": {
-    "levels": {
-      "0": {
-        "statsUserDownlink": true,
-        "statsUserUplink": true
-      }
-    },
-    "system": {
-      "statsInboundDownlink": true,
-      "statsInboundUplink": true,
-      "statsOutboundDownlink": true,
-      "statsOutboundUplink": true
-    }
-  },
-  "routing": {
-    "domainStrategy": "IPIfNonMatch",
-    "rules": [
-      {
-        "inboundTag": [
-          "api"
-        ],
-        "outboundTag": "api",
-        "type": "field"
-      },
-      {
-        "ip": [
-          "geoip:private"
-        ],
-        "outboundTag": "blocked",
-        "type": "field"
-      },
-      {
-        "outboundTag": "blocked",
-        "protocol": [
-          "bittorrent"
-        ],
-        "type": "field"
-      },
-      {
-        "domain": [
-          "geosite:google",
-          "geosite:youtube"
-        ],
-        "outboundTag": "warp",
-        "type": "field"
-      }
-    ]
-  },
-  "stats": {}
+  ]
 }
 END
 cat > /etc/nginx/nginx.conf << END
