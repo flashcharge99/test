@@ -196,13 +196,14 @@ cat > /usr/local/etc/xray/config.json << END
             "http/1.1"
           ]
         }
-      },
-      "sniffing": {
+        "sniffing": {
         "enabled": true,
         "destOverride": [
           "http",
           "tls"
-        ]
+          ]
+        },
+        "tag": "inbound-vision"
       }
     },
 # TROJAN TCP TLS
@@ -237,8 +238,9 @@ cat > /usr/local/etc/xray/config.json << END
         "destOverride": [
           "http",
           "tls"
-        ]
-      }
+          ]
+        },
+      "tag": "inbound-tcp-tls"
     },
 # VLESS WS
     {
@@ -267,8 +269,9 @@ cat > /usr/local/etc/xray/config.json << END
         "destOverride": [
           "http",
           "tls"
-        ]
-      }
+          ]
+        },
+      "tag": "inbound-vless-ws"
     },
 # VLESS HUP
     {
@@ -297,8 +300,9 @@ cat > /usr/local/etc/xray/config.json << END
         "destOverride": [
           "http",
           "tls"
-        ]
-      }
+          ]
+        },
+      "tag": "inbound-vless-hup"
     },
 # VMESS WS
     {
@@ -327,8 +331,9 @@ cat > /usr/local/etc/xray/config.json << END
         "destOverride": [
           "http",
           "tls"
-        ]
-      }
+          ]
+        },
+      "tag": "inbound-vmess-ws"
     },
 # VMESS HUP
     {
@@ -357,8 +362,9 @@ cat > /usr/local/etc/xray/config.json << END
         "destOverride": [
           "http",
           "tls"
-        ]
-      }
+          ]
+        },
+      "tag": "inbound-vmess-hup"
     },
 # TROJAN WS
     {
@@ -386,8 +392,9 @@ cat > /usr/local/etc/xray/config.json << END
         "destOverride": [
           "http",
           "tls"
-        ]
-      }
+          ]
+        },
+      "tag": "inbound-trojan-ws"
     },
 # TROJAN HUP
     {
@@ -415,8 +422,9 @@ cat > /usr/local/etc/xray/config.json << END
         "destOverride": [
           "http",
           "tls"
-        ]
-      }
+          ]
+        },
+      "tag": "inbound-trojan-hup"
     },
     {
       "port": 80,
@@ -456,8 +464,9 @@ cat > /usr/local/etc/xray/config.json << END
         "destOverride": [
           "http",
           "tls"
-        ]
-      }
+          ]
+        },
+      "tag": "inbound-universal"
     },
 # TROJAN WS
     {
@@ -485,8 +494,9 @@ cat > /usr/local/etc/xray/config.json << END
         "destOverride": [
           "http",
           "tls"
-        ]
-      }
+          ]
+        },
+      "tag": "inbound-trojan-ws1"
     }
   ],
   "log": {
@@ -577,6 +587,23 @@ cat > /usr/local/etc/xray/config.json << END
           "geosite:google",
           "geosite:netflix"
         ],
+        "outboundTag": "warp",
+        "type": "field"
+      },
+      {
+        "inboundTag": [
+          "inbound-vision",
+          "inbound-tcp-tls",
+          "inbound-vless-ws",
+          "inbound-vless-hup",
+          "inbound-vmess-ws",
+          "inbound-vmess-hup",
+          "inbound-trojan-ws",
+          "inbound-trojan-hup",
+          "inbound-universal",
+          "inbound-trojan-ws1"
+        ],
+        "network": "TCP,UDP",
         "outboundTag": "warp",
         "type": "field"
       }
