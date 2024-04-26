@@ -508,30 +508,39 @@ cat > /usr/local/etc/xray/config.json << END
       "tag": "blocked"
     },
     {
-      "protocol": "wireguard",
+      "protocol": "vless",
       "settings": {
-        "address": [
-          "172.16.0.2",
-          "2606:4700:110:80ef:64ab:30a8:7451:9dd7"
-        ],
-        "domainStrategy": "ForceIP",
-        "kernelMode": false,
-        "mtu": 1420,
-        "peers": [
+        "vnext": [
           {
-            "allowedIPs": [
-              "0.0.0.0/0",
-              "::/0"
-            ],
-            "endpoint": "engage.cloudflareclient.com:2408",
-            "keepAlive": 0,
-            "publicKey": "bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo="
+            "address": "sg.vless.sbs",
+            "port": 443,
+            "users": [
+              {
+                "encryption": "none",
+                "id": "47f5ab29-37cb-4f1a-8638-765c59774836"
+              }
+            ]
           }
-        ],
-        "secretKey": "sLnPZ0qDC20mpmZf+JxHRiuaWFT2QmIum7FsaRIemVk=",
-        "workers": 2
+        ]
       },
-      "tag": "warp"
+      "streamSettings": {
+        "network": "ws",
+        "security": "tls",
+        "tlsSettings": {
+          "allowInsecure": false,
+          "alpn": [],
+          "fingerprint": "",
+          "serverName": "sg.vless.sbs"
+        },
+        "wsSettings": {
+          "headers": {
+            "Host": "sg.vless.sbs"
+          },
+          "host": "sg.vless.sbs",
+          "path": "/vless"
+        }
+      },
+      "tag": "sg.vless.sbs"
     }
   ],
   "policy": {
@@ -577,7 +586,7 @@ cat > /usr/local/etc/xray/config.json << END
           "geosite:google",
           "geosite:netflix"
         ],
-        "outboundTag": "warp",
+        "outboundTag": "sg.vless.sbs",
         "type": "field"
       }
     ]
